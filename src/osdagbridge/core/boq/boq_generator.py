@@ -356,9 +356,14 @@ def calculate_material_quantities(inputs: dict, outputs: dict) -> dict:
         
         if cb_area_val is not None:
             try:
-                cb_area = float(cb_area_val) / 1e6
-            except Exception:
-                pass
+                cb_area = float(cb_area_val)
+                # UI stores this key in m², while the default library stores it
+                # in mm². Normalize once so the BOQ volume is not collapsed to
+                # zero by a second division.
+                if cb_area > 10.0:
+                    cb_area /= 1e6
+            except (TypeError, ValueError):
+                cb_area = 0.0
         
         if cb_area > 0.0:
             cb_vol = cb_area * span

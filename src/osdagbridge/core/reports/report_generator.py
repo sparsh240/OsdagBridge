@@ -120,6 +120,8 @@ from osdagbridge.core.utils.common import (
     KEY_DD_SHEAR_VRDC,
     KEY_DD_VRD_C_MPA,
     KEY_DESIGN_MODE,
+    KEY_SL_FORCE_LONGITUDINAL,
+    KEY_SL_FORCE_TRANSVERSE,
     KEY_SPAN,
     KEY_TD_ED_BOTTOM_CHORD_PROP_L,
     KEY_TD_ED_BOTTOM_CHORD_PROP_M,
@@ -199,7 +201,7 @@ def preamble(project_name, job_number, report_date, report_version='Rev 0'):
     format=plain
 }
 \usepackage{subcaption}
-\usepackage{multirow}
+\usepackage[longtable]{multirow}
 \usepackage{colortbl}
 \usepackage{longtable}
 \setlength{\LTleft}{\fill}
@@ -355,6 +357,9 @@ def title_page(m, osdag_logo, org_logo):
 \hline
 \end{tabular}
 \end{titlepage}
+% The titlepage environment resets the page counter to 1. Advance it so the
+% TOC and all section footers use the same physical page numbers.
+\addtocounter{page}{1}
 """
 
 
@@ -904,11 +909,13 @@ def build_report_payload(request, input_dict, output_dict):
         except Exception as e:
             logger.warning(f"Failed to parse project location data: {e}")
 
-        # ── Table 3.6 rows 3 & 4: effective bridge temp range and rise/fall ────
-        # The computed keys live in output_dict (which is a snapshot of input_dict
-        # at design time). Merge them into input_dict if not already present.
+        # ── Table 3.6: effective bridge temp range and seismic forces ─────────
+        # These computed keys live in output_dict (which is a snapshot of
+        # input_dict at design time). Merge them into input_dict if not already
+        # present so the report can render them alongside the UI inputs.
         for _tkey in (KEY_TL_BRIDGE_TEMP_MIN, KEY_TL_BRIDGE_TEMP_MAX,
-                      KEY_TL_TEMP_RISE, KEY_TL_TEMP_FALL):
+                      KEY_TL_TEMP_RISE, KEY_TL_TEMP_FALL,
+                      KEY_SL_FORCE_LONGITUDINAL, KEY_SL_FORCE_TRANSVERSE):
             if not input_dict.get(_tkey) and output_dict.get(_tkey):
                 input_dict[_tkey] = output_dict[_tkey]
 

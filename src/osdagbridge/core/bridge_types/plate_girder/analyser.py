@@ -1168,7 +1168,11 @@ class BridgeGrillageModel:
         -------
         dict
             ``{"EQ_X": ..., "EQ_Z": ..., "EQ_Y": ...,
-               "EQ_a": ..., "EQ_b": ..., "EQ_c": ...}``
+               "EQ_a": ..., "EQ_b": ..., "EQ_c": ...,
+               "Feq_X_kN": ..., "Feq_Z_kN": ...}``
+
+            The force entries are returned for report/documentation use; the
+            load-case objects remain the analysis API.
         """
         model = model or self.model
         if model is None:
@@ -1301,6 +1305,7 @@ class BridgeGrillageModel:
         return {
             "EQ_X": EQ_X, "EQ_Z": EQ_Z, "EQ_Y": EQ_Y,
             "EQ_a": combo_cases[0], "EQ_b": combo_cases[1], "EQ_c": combo_cases[2],
+            "Feq_X_kN": Feq_X_kN, "Feq_Z_kN": Feq_Z_kN,
         }
 
     # ============================================================

@@ -75,6 +75,7 @@ from osdagbridge.core.utils.common import (
     KEY_SL_DEAD_LOAD_MODE, KEY_SL_DEAD_LOAD_VALUE,
     KEY_SL_LIVE_LOAD_MODE, KEY_SL_LIVE_LOAD_VALUE,
     KEY_SL_HORIZONTAL_COEFF, KEY_SL_VERTICAL_COEFF,
+    KEY_SL_FORCE_LONGITUDINAL, KEY_SL_FORCE_TRANSVERSE,
     KEY_MD_WIDTH,
     KEY_RL_WIDTH,
     KEY_TS_DECK_OVERHANG,
@@ -1960,7 +1961,7 @@ class PlateGirderBridge:
         dead_load_kN = _custom_load(KEY_SL_DEAD_LOAD_MODE, KEY_SL_DEAD_LOAD_VALUE)
         live_load_kN = _custom_load(KEY_SL_LIVE_LOAD_MODE, KEY_SL_LIVE_LOAD_VALUE)
 
-        self.grillage_model.create_seismic_load_cases(
+        seismic_result = self.grillage_model.create_seismic_load_cases(
             z_value=z_value,
             soil_type=soil_type,
             importance_factor=importance_factor,
@@ -1973,6 +1974,16 @@ class PlateGirderBridge:
             live_load_kN=live_load_kN,
             partial_safety_factor=1.5,  # IRC:6-2017 Table B.2 seismic ULS
         )
+
+        # Expose the design forces for Table 3.6. They are computed inside the
+        # analyser but are not otherwise present in input_dict/output_dict.
+        for _key, _result_key in (
+            (KEY_SL_FORCE_LONGITUDINAL, "Feq_X_kN"),
+            (KEY_SL_FORCE_TRANSVERSE, "Feq_Z_kN"),
+        ):
+            _value = seismic_result.get(_result_key)
+            if _value is not None:
+                self.output_dict[_key] = f"{float(_value):.2f}"
 
     def vehicle_lane_coordinates(self) -> list:
         """

@@ -24,6 +24,8 @@ from osdagbridge.core.utils.common import (
     KEY_SL_DAMPING,
     KEY_SL_DEAD_LOAD_MODE,
     KEY_SL_DEAD_LOAD_VALUE,
+    KEY_SL_FORCE_LONGITUDINAL,
+    KEY_SL_FORCE_TRANSVERSE,
     KEY_SL_HORIZONTAL_COEFF,
     KEY_SL_IMPORTANCE_FACTOR,
     KEY_SL_LIVE_LOAD_MODE,
@@ -55,6 +57,17 @@ from osdagbridge.core.utils.common import (
 )
 
 from osdagbridge.core.reports.report_utils import _tex, _render_value
+
+
+def _seismic_force(value):
+    """Format a computed seismic force for Table 3.6, with an explicit fallback."""
+    if value in (None, ""):
+        return "N/A"
+    try:
+        return f"{float(value):.2f} kN"
+    except (TypeError, ValueError):
+        return "N/A"
+
 
 def ch3_loads(input_dict):
     # Vehicle live loads follow exactly what is selected in the Loading tab
@@ -228,20 +241,41 @@ def ch3_loads(input_dict):
     }
 
     def _fmt_factors(factors):
-        """Format a factors dict into a compact load-case string for the table."""
+        """Format a factors dict into a compact load-case string for the table.
+
+        Labels are restricted to the known IRC load aliases and numeric factors
+        are parsed explicitly, so unexpected internal names (for example
+        ``EQ_X``) or stray LaTeX/brackets cannot leak into the rendered table.
+        """
+        def _number(value):
+            if value is None:
+                return '--'
+            try:
+                return f"{float(value):.2f}"
+            except (TypeError, ValueError):
+                return '--'
+
         parts = []
         for load, val in factors.items():
-            label = _LOAD_LABEL_MAP.get(load, load.upper())
+            key = str(load).strip().lower()
+            if key.startswith("eq") or "seismic" in key:
+                label = "EQ"
+            else:
+                label = _LOAD_LABEL_MAP.get(key, key.upper())
+            label = ''.join(ch for ch in label if ch.isalnum())
+            if not label:
+                continue
             if isinstance(val, dict):  # permanent load with adding/relieving
-                add = val.get('adding')
-                rel = val.get('relieving')
-                add_s = f"{add:.2f}" if add is not None else '--'
-                rel_s = f"{rel:.2f}" if rel is not None else '--'
-                parts.append(f"{label}({add_s}/{rel_s})")
+                parts.append(
+                    f"{label}({_number(val.get('adding'))}/{_number(val.get('relieving'))})"
+                )
             else:
                 if val is None:
                     continue  # skip N/A factors
-                parts.append(f"{label}({val:.2f})")
+                try:
+                    parts.append(f"{label}({float(val):.2f})")
+                except (TypeError, ValueError):
+                    continue
         return ' + '.join(parts)
 
     uls_combos = IRC6_2017.uls_load_combinations()
@@ -306,7 +340,7 @@ This section summarizes all loads applied to the bridge and the load combination
 \hline
 \end{longtable}
 
-\noindent\textit{Note: Vehicle classes are taken directly from the Loading tab of Additional Inputs. Centrifugal load is N/A because the model has no horizontal-curvature input. Braking is the total design braking force for the selected lanes (IRC 6 Cl. 211.2); the same value applies to every vehicle row and is not a per-vehicle load. Number of lanes: """ + _tex(braking_lanes_source) + r""".}
+\noindent\textit{Note: Vehicle classes are taken directly from the Loading tab of Additional Inputs. Centrifugal load is N/A because the model has no horizontal-curvature input. Braking is the total design braking force for the selected lanes (IRC 6 Cl. 211.2); the same value applies to every vehicle row and is not a per-vehicle load. The lane count was derived from """ + _tex(braking_lanes_source) + r""".}
 
 \vspace{1em}
 \begin{longtable}{|L{5.5cm}|p{9.5cm}|}
@@ -364,9 +398,9 @@ This section summarizes all loads applied to the bridge and the load combination
 \hline
 \textnormal{Vertical Seismic Coefficient, Av} & """ + (_render_value(input_dict, KEY_SL_VERTICAL_COEFF)) + r""" \\[6pt]
 \hline
-\textnormal{Horizontal Seismic Force (longitudinal)} & """ + '' + r""" kN \\[6pt]
+\textnormal{Horizontal Seismic Force (longitudinal)} & """ + _seismic_force(input_dict.get(KEY_SL_FORCE_LONGITUDINAL)) + r""" \\[6pt]
 \hline
-\textnormal{Horizontal Seismic Force (transverse)} & """ + '' + r""" kN \\[6pt]
+\textnormal{Horizontal Seismic Force (transverse)} & """ + _seismic_force(input_dict.get(KEY_SL_FORCE_TRANSVERSE)) + r""" \\[6pt]
 \hline
 \end{longtable}
 

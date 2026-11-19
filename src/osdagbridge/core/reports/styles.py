@@ -98,8 +98,9 @@ def inject_longtable_headers(tex: str) -> str:
 
     The report chapters build tables as raw LaTeX strings, so applying one
     centralized pass after assembly is simpler and less error-prone than
-    editing every table.  Caption and header stay in the first head; on every
-    subsequent page only the header row is repeated.
+    editing every table.  The caption stays in the first head; subsequent
+    pages get a short "(table continued)" note followed by the real column
+    header row.
 
     Docs: https://ctan.org/pkg/longtable
     """
@@ -135,15 +136,27 @@ def inject_longtable_headers(tex: str) -> str:
             pos = end
             continue
 
+        # Captions are often written as \caption{\textbf{Title}} \\, so a
+        # caption must not be mistaken for the column-header row.
         header_idx = None
         for i, line in enumerate(lines):
             stripped = line.strip()
+            if stripped.startswith(r"\caption{"):
+                continue
             if _HEADER_RE.search(stripped) and _ROW_END_RE.search(stripped):
                 header_idx = i
                 break
 
         if header_idx is None:
-            out.append("".join(lines))     # no detectable header row
+            # Fallback for tables without a bold header: keep the header-token
+            # pair by repeating the caption instead of silently omitting it.
+            for i, line in enumerate(lines):
+                if line.strip().startswith(r"\caption{"):
+                    header_idx = i
+                    break
+
+        if header_idx is None:
+            out.append("".join(lines))     # no header/caption to repeat
             pos = end
             continue
 
@@ -156,10 +169,15 @@ def inject_longtable_headers(tex: str) -> str:
             continue
 
         header_line = lines[header_idx]
+        if not header_line.endswith("\n"):
+            header_line += "\n"
         indent = header_line[:len(header_line) - len(header_line.lstrip())]
+        ncols = len(re.findall(r"(?<!\\)&", header_line)) + 1
+        note = longtable_header_note(ncols) if ncols > 1 else ""
         repeated = (
             indent + r"\endfirsthead" + "\n"
             + indent + r"\hline" + "\n"
+            + indent + note
             + header_line
             + indent + r"\hline" + "\n"
             + indent + r"\endhead" + "\n"
