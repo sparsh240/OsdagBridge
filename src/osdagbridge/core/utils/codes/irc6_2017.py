@@ -887,20 +887,22 @@ class IRC6_2017:
     @staticmethod
     def cl_211_2_braking_force(design_lanes):
         """
-        Returns braking force as per IRC:6-2017 Clause 211.2.
-        Returns:
-            float: Braking force in t (rounded to 3 decimal places)
+        Longitudinal braking force as per IRC:6-2017 Clause 211.2.
+
+        First two design lanes: 20% of one Class A train; each additional lane:
+        5% of one Class 70R train. Wheel loads from cl_204_1_* are in newtons,
+        so the total is divided by 9810 N/t to return tonnes-force (as the
+        original docstring specified). The previous loop raised
+        UnboundLocalError on its first iteration and was never usable.
+
+        Docs: https://law.resource.org/pub/in/bis/S03/is.6.2017.pdf
         """
-        for lane in range(1, design_lanes + 1):
-            if lane == 1 or lane == 2:
-                wheel_load = IRC6_2017.cl_204_1_ClassA_vehicle()['wheel_loads']
-                braking_force_1 = 0.20 * sum(wheel_load)  # t
-            if lane > 2:
-                wheel_load = IRC6_2017.cl_204_1_Class70R_vehicle_wheel()['wheel_loads']
-                braking_force_2 = 0.05 * sum(wheel_load)  # t
-            
-            total_braking_force = braking_force_1 + braking_force_2
-        return round(total_braking_force, 3)
+        design_lanes = max(0, int(design_lanes))
+        class_a_n = sum(IRC6_2017.cl_204_1_ClassA_vehicle()['wheel_loads'])
+        class_70r_n = sum(IRC6_2017.cl_204_1_Class70R_vehicle_wheel()['wheel_loads'])
+        total_n = (min(design_lanes, 2) * 0.20 * class_a_n
+                   + max(design_lanes - 2, 0) * 0.05 * class_70r_n)
+        return round(total_n / 9810.0, 3)
     
     @staticmethod
     def cl_211_3_braking_force_location():

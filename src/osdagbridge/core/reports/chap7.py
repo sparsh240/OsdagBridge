@@ -1,4 +1,24 @@
-def ch7_quantities(input_dict):
+# =============================================================================
+# Chapter 7: Material Take-off & Quantity Summary
+# =============================================================================
+# Chart images are generated headlessly in report_generator.generate_report()
+# and embedded here through report_utils._fig_embed.
+# Docs: https://matplotlib.org/stable/  and https://ctan.org/pkg/graphicx
+
+from osdagbridge.core.reports.report_utils import _fig_embed
+from osdagbridge.core.reports.styles import FIGURE
+
+
+def ch7_quantities(input_dict, fig_paths=None):
+    material_chart_tex = ""
+    if fig_paths and fig_paths.get('material_quantities'):
+        material_chart_tex = _fig_embed(
+            fig_paths['material_quantities'],
+            r'Material Quantity Summary --- structural steel tonnage and '
+            r'concrete / reinforcement quantities.',
+            width=FIGURE['chart_width'],
+        )
+
     return r"""
 \chapter{Material Take-off \& Quantity Summary}
 \label{ch:material-takeoff}
@@ -28,6 +48,8 @@ def ch7_quantities(input_dict):
 6 & Crash Barrier & """ + str(input_dict.get("crash_barrier_vol_formula", "N.A.")) + r""" & """ + str(input_dict.get("crash_barrier_qty", "N.A.")) + r""" & """ + str(input_dict.get("crash_barrier_vol_total", "N.A.")) + r""" & """ + str(input_dict.get("crash_barrier_wt_single", "N.A.")) + r""" & """ + str(input_dict.get("crash_barrier_wt_total", "N.A.")) + r""" \\
 \hline
 \end{longtable}
+\endgroup
+
+""" + material_chart_tex + r"""
+\noindent\textit{Note: End-diaphragm steel tonnage in the chart is estimated from the section properties and member lengths stored during design; it is not a separate line item in Table 7.1. Concrete volume and reinforcement weight use different units and are labelled individually.}
 """
-
-

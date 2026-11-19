@@ -141,11 +141,12 @@ from osdagbridge.core.utils.common import (
     KEY_UTIL_SHEAR
 )
 
-from osdagbridge.core.reports.report_utils import _tex, _render_value, get_girder_entries
+from osdagbridge.core.reports.report_utils import _tex, _render_value, get_girder_entries, _fig_embed
+from osdagbridge.core.reports.styles import FIGURE
 
 if TYPE_CHECKING:
     pass
-def ch5_design_checks(checks_data, bridge) -> str:
+def ch5_design_checks(checks_data, bridge, fig_paths=None) -> str:
     """Chapter 5 — Design Checks.
 
     Parameters
@@ -937,7 +938,9 @@ Fatigue Shear Resistance, $Q_r$ & IRC 22 Table 8 ($\phi d$, $N_{sc}$) & """
     # (3) Cross bracing — worst pair/member by UR for the given force type.
     _cb_pairs_522 = bridge.get_cb_pairs()
 
-    def _cb_row(force_type):
+    def _cb_row(force_type, unit="kN"):
+        # `unit` lets the mirrored End Diaphragm moment row show kN-m while the
+        # cross-bracing axial-force rows keep kN. Values/UR are unchanged.
         best = None  # (ur, pair, member, capacity_str)
         for pair in _cb_pairs_522:
             for member in ("diagonal", "chord"):
@@ -953,8 +956,8 @@ Fatigue Shear Resistance, $Q_r$ & IRC 22 Table 8 ($\phi d$, $N_{sc}$) & """
             return ("---", "---", "---", "---")
         ur, pair, member, cap = best
         gov = bridge.get_cb_gov_lc(pair, member, force_type) or "---"
-        dem = f"{float(cap) * ur:.2f} kN" if cap else "---"
-        cap_s = (cap + " kN") if cap else "---"
+        dem = f"{float(cap) * ur:.2f} {unit}" if cap else "---"
+        cap_s = (cap + " " + unit) if cap else "---"
         return (gov, dem, cap_s, _ur_522(ur))
 
     def _cb_slender_row():
@@ -1011,7 +1014,9 @@ Fatigue Shear Resistance, $Q_r$ & IRC 22 Table 8 ($\phi d$, $N_{sc}$) & """
             break
     _ed_is_cb = "brac" in _ed_type.strip().lower()
     if _ed_is_cb:
-        _ed_moment_row = _row522(r"End Diaphragm --- Moment", _cb_row("compression"))
+        _ed_moment_row = _row522(
+            r"End Diaphragm --- Moment", _cb_row("compression", unit="kN-m")
+        )
         _ed_shear_row  = _row522(r"End Diaphragm --- Shear",  _cb_row("tension"))
     else:
         _ed_msg = r"Rolled / Welded section --- design to be added"
@@ -1064,6 +1069,17 @@ Fatigue Shear Resistance, $Q_r$ & IRC 22 Table 8 ($\phi d$, $N_{sc}$) & """
         _ed_shear_row,
     ]
     t522_content = "\n".join(_t522)
+
+    # Overall UR chart (Section 5.5), rendered headlessly in generate_report().
+    _ur_chart_tex = ""
+    if fig_paths and fig_paths.get('ur_summary'):
+        _ur_chart_tex = _fig_embed(
+            fig_paths['ur_summary'],
+            r'Overall Utilization Ratio (UR = Demand / Capacity). '
+            r'Red dashed line: UR = 1.0 (bars above it fail). '
+            r'End-diaphragm UR follows the governing value reported in Table 5.29.',
+            width=FIGURE['chart_width'],
+        )
 
     return r"""
 \chapter{Design Checks}
@@ -1135,6 +1151,8 @@ This section presents all structural design checks performed by OsdagBridge. For
 \vspace{1em}
 \begin{longtable}{|C{2.5cm}|L{6.5cm}|>{\arraybackslash}p{6.5cm}|}
 \caption{\textbf{Stiffener Design Summary}}
+\hline
+\textbf{} & \textbf{Parameter} & \textbf{Value} \\[6pt]
 \hline
 """ + t57_content + r"""
 \end{longtable}
@@ -1234,6 +1252,8 @@ The reinforced concrete deck slab is designed per IRC~112:2011 (flexure, shear, 
 \vspace{1em}
 \begin{longtable}{|L{5.5cm}|p{10.0cm}|}
 \caption{\textbf{Deck Slab --- Loading and Geometry}}
+\hline
+\textbf{parameter} & \textbf{value} \\
 \hline
 \textnormal{Effective Span of Deck Slab, $l_{eff}$} & """ + _dkf(KEY_DD_SPAN, nd=0, scale=1000.0) + r""" mm (girder spacing, c/c) \\[6pt]
 \hline
@@ -1500,6 +1520,8 @@ End diaphragms at the supports transfer transverse loads to the bearings, restra
 """ + t522_content + r"""
 \end{longtable}
 \noindent\textit{Note: UR = Demand / Capacity. All values $\leq 1.0$ indicate passing checks. The governing check for each component is highlighted in the individual design check sections above.}
+
+""" + _ur_chart_tex + r"""
 
 """
 

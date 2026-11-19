@@ -108,8 +108,25 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Literal
 
 from osdagbridge.core.utils.common import (
+    KEY_DD_HAS_OVERHANG,
+    KEY_DD_M_ULS_HOG,
+    KEY_DD_M_ULS_OH,
+    KEY_DD_M_ULS_SAG,
+    KEY_DD_MU_BOT,
+    KEY_DD_MU_OH,
+    KEY_DD_MU_TOP,
+    KEY_DD_PUNCH_VED,
+    KEY_DD_SHEAR_VED,
+    KEY_DD_SHEAR_VRDC,
+    KEY_DD_VRD_C_MPA,
     KEY_DESIGN_MODE,
     KEY_SPAN,
+    KEY_TD_ED_BOTTOM_CHORD_PROP_L,
+    KEY_TD_ED_BOTTOM_CHORD_PROP_M,
+    KEY_TD_ED_PROP_L,
+    KEY_TD_ED_PROP_M,
+    KEY_TD_ED_TOP_CHORD_PROP_L,
+    KEY_TD_ED_TOP_CHORD_PROP_M,
     KEY_TL_BRIDGE_TEMP_MAX,
     KEY_TL_BRIDGE_TEMP_MIN,
     KEY_TL_HIGHEST_MAX_TEMP,
@@ -119,6 +136,10 @@ from osdagbridge.core.utils.common import (
 )
 
 from osdagbridge.core.reports.report_utils import _tex
+from osdagbridge.core.reports.styles import (
+    PAGE, HEADER_FOOTER, TABLE, COLORS, inject_longtable_headers,
+)
+from .charts import ur_summary_chart, material_quantity_chart
 from .executive_summary import executive_summary
 from .chap1 import ch1_project_info
 from .chap2 import ch2_input_parameters
@@ -156,7 +177,7 @@ def preamble(project_name, job_number, report_date, report_version='Rev 0'):
 \documentclass[12pt,a4paper]{report}
 
 % Packages
-\usepackage[a4paper, margin=1in]{geometry}
+\usepackage[a4paper, margin=""" + PAGE['margin'] + r""", bottom=""" + PAGE['bottom'] + r""", footskip=""" + PAGE['footskip'] + r""", headsep=""" + PAGE['headsep'] + r"""]{geometry}
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -192,67 +213,65 @@ def preamble(project_name, job_number, report_date, report_version='Rev 0'):
 
 \numberwithin{table}{chapter}
 \numberwithin{figure}{chapter}
-% Table layout and spacing: consistent padding, row height, and longtable pre/post skips
-\setlength{\tabcolsep}{6pt}
-\renewcommand{\arraystretch}{1.12}
-\setlength{\LTpre}{0pt}
-\setlength{\LTpost}{6pt}
-% Table rules (outline thickness) and small extra row height for clarity
-\setlength{\arrayrulewidth}{0.5pt}
-\setlength{\extrarowheight}{0.6pt}
+% Table layout and spacing — all values from reports/styles.py
+\setlength{\tabcolsep}{""" + TABLE['tabcolsep'] + r"""}
+\renewcommand{\arraystretch}{""" + TABLE['arraystretch'] + r"""}
+\setlength{\LTpre}{""" + TABLE['ltpre'] + r"""}
+\setlength{\LTpost}{""" + TABLE['ltpost'] + r"""}
+\setlength{\arrayrulewidth}{""" + TABLE['arrayrulewidth'] + r"""}
+\setlength{\extrarowheight}{""" + TABLE['extrarowheight'] + r"""}
 
-% Prevent tables from overflowing past the page bottom:
-% if fewer than 5 baseline-skips remain, break to the next page first.
-\BeforeBeginEnvironment{table}{\needspace{5\baselineskip}}
-\BeforeBeginEnvironment{longtable}{\needspace{5\baselineskip}}
+% Page-bottom threshold: break before a table if less room than this remains.
+\BeforeBeginEnvironment{table}{\needspace{""" + TABLE['needspace'] + r"""}}
+\BeforeBeginEnvironment{longtable}{\needspace{""" + TABLE['needspace'] + r"""}}
 
-\definecolor{osdagGreen}{HTML}{91B014}
+\definecolor{""" + COLORS['green_latex'] + r"""}{HTML}{""" + COLORS['green'] + r"""}
 
 \fancypagestyle{main}{
   \fancyhf{}
   \fancyhead[L]{""" + pn + r""" $|$ """ + jn + r"""}
   \fancyhead[R]{""" + rd + r""" $|$ """ + rv + r"""}
-  \fancyfoot[L]{Osdag $|$ FOSSEE $|$ Indian Institute of Technology Bombay}
+  \fancyfoot[L]{""" + HEADER_FOOTER['left_text'] + r"""}
   \fancyfoot[R]{Page \thepage\ of \pageref{LastPage}}
-  \renewcommand{\headrule}{\color{osdagGreen}\hrule width\headwidth height 1pt \vspace{2pt}}
+  \renewcommand{\headrule}{\color{""" + COLORS['green_latex'] + r"""}\hrule width\headwidth height """ + PAGE['headrule_width'] + r""" \vspace{""" + HEADER_FOOTER['head_vspace'] + r"""}}
   \renewcommand{\footrule}{%
     \ifbool{hasSDonPage}{%
-      \vspace{-20pt}%
+      \vspace{""" + HEADER_FOOTER['foot_vspace_note'] + r"""}%
       \hbox to \headwidth{\textcolor{black}{\footnotesize\textit{* Software default value}}\hfil}%
       \vspace{4pt}%
     }{%
-      \vspace{-8pt}%
+      \vspace{""" + HEADER_FOOTER['foot_vspace_no_note'] + r"""}%
     }%
-    \color{osdagGreen}\hrule width\headwidth height 1pt \vspace{6pt}%
+    \color{""" + COLORS['green_latex'] + r"""}\hrule width\headwidth height """ + PAGE['footrule_width'] + r""" \vspace{""" + HEADER_FOOTER['foot_final_vspace'] + r"""}%
   }
 }
 \fancypagestyle{plain}{
   \fancyhf{}
   \fancyhead[L]{""" + pn + r""" $|$ """ + jn + r"""}
   \fancyhead[R]{""" + rd + r""" $|$ """ + rv + r"""}
-  \fancyfoot[L]{Osdag $|$ FOSSEE $|$ Indian Institute of Technology Bombay}
+  \fancyfoot[L]{""" + HEADER_FOOTER['left_text'] + r"""}
   \fancyfoot[R]{Page \thepage\ of \pageref{LastPage}}
-  \renewcommand{\headrule}{\color{osdagGreen}\hrule width\headwidth height 1pt \vspace{2pt}}
+  \renewcommand{\headrule}{\color{""" + COLORS['green_latex'] + r"""}\hrule width\headwidth height """ + PAGE['headrule_width'] + r""" \vspace{""" + HEADER_FOOTER['head_vspace'] + r"""}}
   \renewcommand{\footrule}{%
     \ifbool{hasSDonPage}{%
-      \vspace{-20pt}%
+      \vspace{""" + HEADER_FOOTER['foot_vspace_note'] + r"""}%
       \hbox to \headwidth{\textcolor{black}{\footnotesize\textit{* Software default value}}\hfil}%
       \vspace{4pt}%
     }{%
-      \vspace{-8pt}%
+      \vspace{""" + HEADER_FOOTER['foot_vspace_no_note'] + r"""}%
     }%
-    \color{osdagGreen}\hrule width\headwidth height 1pt \vspace{6pt}%
+    \color{""" + COLORS['green_latex'] + r"""}\hrule width\headwidth height """ + PAGE['footrule_width'] + r""" \vspace{""" + HEADER_FOOTER['foot_final_vspace'] + r"""}%
   }
 }
 \fancypagestyle{firstpage}{
   \fancyhf{}
   \renewcommand{\headrulewidth}{0pt}
-  \fancyfoot[L]{Osdag $|$ FOSSEE $|$ Indian Institute of Technology Bombay}
+  \fancyfoot[L]{""" + HEADER_FOOTER['left_text'] + r"""}
   \fancyfoot[R]{Page \thepage\ of \pageref{LastPage}}
-  \renewcommand{\footrule}{\vspace{-8pt}\color{osdagGreen}\hrule width\headwidth height 1pt \vspace{6pt}}
+  \renewcommand{\footrule}{\vspace{""" + HEADER_FOOTER['foot_vspace_no_note'] + r"""}\color{""" + COLORS['green_latex'] + r"""}\hrule width\headwidth height """ + PAGE['footrule_width'] + r""" \vspace{""" + HEADER_FOOTER['foot_final_vspace'] + r"""}}
 }
 \pagestyle{main}
-\setstretch{1.15}
+\setstretch{""" + PAGE['stretch'] + r"""}
 
 % Custom Commands
 \newcommand{\placeholder}[1]{\textit{\textless #1\textgreater}}
@@ -633,6 +652,154 @@ class ReportDataBridge:
         except Exception:
             return ""
 
+# ---------------------------------------------------------------------------
+# Chart data helpers — read the same data that builds Tables 5.22 and 7.1.
+# Docs: https://matplotlib.org/stable/  (charts.py) and
+#       https://ctan.org/pkg/longtable (table source of the UR values).
+# ---------------------------------------------------------------------------
+
+def _as_float(value):
+    try:
+        number = float(value)
+        return number if number == number else None   # reject NaN
+    except (TypeError, ValueError):
+        return None
+
+
+def ur_summary_entries(bridge):
+    """Return ``[(label, UR or None)]`` for the four primary elements."""
+    entries = []
+
+    # Steel plate girders: worst DCR from the DCR engine (per_girder checks)
+    # and its per-load-case fallback.
+    best_girder = None
+    per_girder = ((bridge.output_dict.get("design_results", {}) or {})
+                  .get("per_girder", {}) or {})
+    for girder, data in per_girder.items():
+        if str(girder).startswith("EB"):
+            continue
+        for check in (data.get("checks") or []):
+            dcr = _as_float(check.get("dcr"))
+            if dcr is not None and (best_girder is None or dcr > best_girder):
+                best_girder = dcr
+        for lc, lc_data in (data.get("per_lc") or {}).items():
+            if str(lc).lower().startswith("envelope"):
+                continue
+            for check in (lc_data.get("checks") or []):
+                dcr = _as_float(check.get("dcr"))
+                if dcr is not None and (best_girder is None or dcr > best_girder):
+                    best_girder = dcr
+    entries.append(("Steel Plate\nGirders", best_girder))
+
+    # Concrete deck slab: worst demand/capacity ratio of the checked panels.
+    # Table 5.29 reads deck_report_values (not deck_design_results); use the
+    # same dict so the chart agrees with the table, including the overhang row
+    # that usually governs.
+    deck = bridge.output_dict.get("deck_report_values") or {}
+    deck_ratios = []
+    deck_pairs = [
+        (KEY_DD_M_ULS_SAG, KEY_DD_MU_BOT),
+        (KEY_DD_M_ULS_HOG, KEY_DD_MU_TOP),
+        (KEY_DD_PUNCH_VED, KEY_DD_VRD_C_MPA),
+        (KEY_DD_SHEAR_VED, KEY_DD_SHEAR_VRDC),
+    ]
+    if deck.get(KEY_DD_HAS_OVERHANG) or deck.get(KEY_DD_M_ULS_OH) not in (None, ""):
+        deck_pairs.append((KEY_DD_M_ULS_OH, KEY_DD_MU_OH))
+    for demand_key, capacity_key in deck_pairs:
+        demand = _as_float(deck.get(demand_key))
+        capacity = _as_float(deck.get(capacity_key))
+        if demand is not None and capacity not in (None, 0.0):
+            deck_ratios.append(demand / capacity)
+    entries.append(("Concrete Deck\nSlab", max(deck_ratios) if deck_ratios else None))
+
+    # Cross bracing and end diaphragm: worst member efficiency stored by Osdag.
+    from osdagbridge.core.bridge_types.plate_girder.results_data import _extract_osdag_summary
+
+    def _worst_design_efficiency(result_key):
+        designs = bridge.output_dict.get(result_key) or {}
+        best = None
+        for pair in sorted(designs.keys()):
+            for member in ("diagonal", "chord"):
+                for force_type in ("tension", "compression"):
+                    try:
+                        raw = designs[pair][member][force_type]
+                        value = _as_float(_extract_osdag_summary(raw or {}).get("efficiency"))
+                    except (KeyError, TypeError):
+                        value = None
+                    if value is not None and (best is None or value > best):
+                        best = value
+        return best
+
+    cross_bracing_ur = _worst_design_efficiency("crossbracing_design_results")
+    entries.append(("Cross\nBracing", cross_bracing_ur))
+
+    # End diaphragm: prefer real end_diaphragm_design_results. In this project
+    # they carry no usable efficiency, while Table 5.29's ED rows are populated
+    # from the cross-bracing helpers (chap5 reuses cb_capacity_content). Fall
+    # back to that same source so the chart agrees with the printed table.
+    end_diaphragm_ur = _worst_design_efficiency("end_diaphragm_design_results")
+    if end_diaphragm_ur is None:
+        best = None
+        try:
+            for pair in bridge.get_cb_pairs():
+                for member in ("diagonal", "chord"):
+                    for force_type in ("tension", "compression"):
+                        value = _as_float(bridge.get_cb_efficiency(pair, member, force_type))
+                        if value is not None and (best is None or value > best):
+                            best = value
+        except Exception:
+            best = None
+        end_diaphragm_ur = best
+    entries.append(("End\nDiaphragms", end_diaphragm_ur))
+    return entries
+
+
+def end_diaphragm_tonnage(bridge):
+    """Approximate end-diaphragm steel mass (MT) from stored section properties.
+
+    Limitation: Chapter 7 has no separate end-diaphragm BOQ line. This estimate
+    uses the mass per metre and member length already stored for every designed
+    pair; the report states this explicitly below the material chart.
+    """
+    def _pair_value(base_key, pair_id):
+        """Store pair-specific key: ``...end_diaphragm.L`` -> ``...G1G2.L``."""
+        prefix, _, last = base_key.rpartition(".")
+        return bridge.output_dict.get(f"{prefix}.{pair_id}.{last}")
+
+    forces = bridge.output_dict.get("end_diaphragm_forces_dict") or {}
+    mass_kg = 0.0
+    for pair in sorted((forces.get("pairs") or {}).keys()):
+        pair_id = pair.replace("-", "")
+        member_mass = 0.0
+        for length_key, mass_key in (
+            (KEY_TD_ED_PROP_L, KEY_TD_ED_PROP_M),
+            (KEY_TD_ED_TOP_CHORD_PROP_L, KEY_TD_ED_TOP_CHORD_PROP_M),
+            (KEY_TD_ED_BOTTOM_CHORD_PROP_L, KEY_TD_ED_BOTTOM_CHORD_PROP_M),
+        ):
+            length = _as_float(_pair_value(length_key, pair_id)) or 0.0
+            mass_per_m = _as_float(_pair_value(mass_key, pair_id)) or 0.0
+            member_mass += length * mass_per_m       # kg (L in m, M in kg/m)
+        # One diaphragm at each end of the span.
+        mass_kg += 2.0 * member_mass
+    return mass_kg / 1000.0
+
+
+def material_chart_values(inputs, bridge):
+    """Return (steel_dict, concrete_m3, rebar_mt) for charts.py."""
+    steel = {
+        "girders": _as_float(inputs.get("steel_girders_wt_total_num")) or 0.0,
+        "cross_bracing": sum(
+            _as_float(inputs.get(key)) or 0.0
+            for key in ("bracing_top_wt_total_num", "bracing_bot_wt_total_num",
+                        "bracing_diag_wt_total_num")
+        ),
+        "end_diaphragms": end_diaphragm_tonnage(bridge),
+    }
+    concrete = _as_float(inputs.get("concrete_deck_vol_total_num")) or 0.0
+    rebar = _as_float(inputs.get("rebar_deck_wt_total_num")) or 0.0
+    return steel, concrete, rebar
+
+
 def _format_project_location(pl_data):
     if not pl_data:
         return ''
@@ -903,6 +1070,19 @@ def generate_report(payload, request):
             bridge = ReportDataBridge(payload.output_dict, payload.inputs, payload)
             span_m = float(payload.inputs.get(KEY_SPAN, 0) or 0)
 
+            # ── Headless charts (matplotlib Agg) written to the same temp assets ──
+            try:
+                ur_chart_path = os.path.join(tmp_images, 'ur_summary.png')
+                ur_summary_chart(ur_summary_entries(bridge), ur_chart_path)
+                fig_paths['ur_summary'] = ur_chart_path.replace('\\', '/')
+
+                steel, concrete, rebar = material_chart_values(payload.inputs, bridge)
+                material_chart_path = os.path.join(tmp_images, 'material_quantities.png')
+                material_quantity_chart(steel, concrete, rebar, material_chart_path)
+                fig_paths['material_quantities'] = material_chart_path.replace('\\', '/')
+            except Exception as chart_exc:
+                logger.warning("Report chart generation failed: %s", chart_exc)
+
             doc_parts = []
             doc_parts.append(preamble(payload.metadata.project_name, payload.metadata.job_number, payload.metadata.report_date, payload.metadata.subtitle or 'Rev 0'))
             doc_parts.append(title_page(payload.metadata, osdag_logo_latex, org_logo_latex))
@@ -924,11 +1104,11 @@ def generate_report(payload, request):
             if 'analysis' in secs:
                 doc_parts.append(ch4_analysis(payload.analysis_summary, fig_paths, bridge, span_m))
             if 'design_checks' in secs:
-                doc_parts.append(ch5_design_checks(payload.design_checks, bridge))
+                doc_parts.append(ch5_design_checks(payload.design_checks, bridge, fig_paths))
             if 'drawings' in secs and payload.options.include_figures:
                 doc_parts.append(ch6_drawings(fig_paths))
 
-            doc_parts.append(ch7_quantities(payload.inputs))
+            doc_parts.append(ch7_quantities(payload.inputs, fig_paths))
 
             mode = str(payload.inputs.get(KEY_DESIGN_MODE, "Optimized")).strip().lower()
             is_custom = mode in {"custom", "customized"}
@@ -942,10 +1122,9 @@ def generate_report(payload, request):
             full_tex = "\n".join(doc_parts)
 
 
-            # NOTE: longtable header repetition is handled per-table in each
-            # chapter file (e.g. \endfirsthead / \endhead).  No automatic
-            # post-processing is applied here to avoid mis-ordering captions
-            # and column headings.
+            # Centralized pass: repeat the header row of every longtable on
+            # each page. Captions stay in the first head (see styles.py).
+            full_tex = inject_longtable_headers(full_tex)
 
             tmp_tex = os.path.join(tmp_dir, request.file_stem + '.tex')
             tmp_pdf = os.path.join(tmp_dir, request.file_stem + '.pdf')

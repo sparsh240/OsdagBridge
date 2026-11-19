@@ -90,6 +90,19 @@ def calculate_material_quantities(inputs: dict, outputs: dict) -> dict:
         "crash_barrier_wt_single": "N.A.",
         "crash_barrier_wt_total": "N.A.",
     }
+
+    # Numeric counterparts for the Chapter 7 bar charts. The string values
+    # above are display-formatted (and may be "N.A."), so charts read these.
+    for _numeric_key in (
+        "steel_girders_wt_total_num",
+        "bracing_top_wt_total_num",
+        "bracing_bot_wt_total_num",
+        "bracing_diag_wt_total_num",
+        "concrete_deck_vol_total_num",
+        "rebar_deck_wt_total_num",
+    ):
+        quantities[_numeric_key] = 0.0
+
     try:
         span_val = inputs.get(KEY_SPAN)
         n_girders_val = inputs.get(KEY_TS_NO_OF_GIRDERS)
@@ -120,6 +133,7 @@ def calculate_material_quantities(inputs: dict, outputs: dict) -> dict:
                     quantities["concrete_deck_vol_total"] = f"{concrete_vol:.2f}"
                     quantities["concrete_deck_wt_single"] = f"{(concrete_vol * 2.5):.2f}"
                     quantities["concrete_deck_wt_total"] = f"{(concrete_vol * 2.5):.2f}"
+                    quantities["concrete_deck_vol_total_num"] = concrete_vol
 
                     # 2. Reinforcement Steel (Cu.m) and Weight (MT)
                     rebar_wt_kg = concrete_vol * 120.0
@@ -132,6 +146,7 @@ def calculate_material_quantities(inputs: dict, outputs: dict) -> dict:
                     rebar_wt_mt = rebar_wt_kg / 1000.0
                     quantities["rebar_deck_wt_single"] = f"{rebar_wt_mt:.2f}"
                     quantities["rebar_deck_wt_total"] = f"{rebar_wt_mt:.2f}"
+                    quantities["rebar_deck_wt_total_num"] = rebar_wt_mt
             except Exception:
                 pass
 
@@ -190,6 +205,7 @@ def calculate_material_quantities(inputs: dict, outputs: dict) -> dict:
             total_girder_wt = total_girder_mass / 1000.0
             quantities["steel_girders_wt_single"] = f"{single_girder_wt:.2f}"
             quantities["steel_girders_wt_total"] = f"{total_girder_wt:.2f}"
+            quantities["steel_girders_wt_total_num"] = total_girder_wt
 
         # 4. Shear Stud Connectors (Cu.m) and Weight (MT)
         spacing_mm = 0.0
@@ -295,6 +311,7 @@ def calculate_material_quantities(inputs: dict, outputs: dict) -> dict:
             quantities["bracing_top_vol_total"] = f"{top_chord_vol_total:.2f}" if top_chord_enabled else "0.00"
             quantities["bracing_top_wt_single"] = f"{top_chord_wt_single:.4f}"
             quantities["bracing_top_wt_total"] = f"{top_chord_wt_total:.2f}" if top_chord_enabled else "0.00"
+            quantities["bracing_top_wt_total_num"] = top_chord_wt_total if top_chord_enabled else 0.0
 
             # 5b. Bottom Chord
             bot_chord_qty = (n_girders - 1) * n_panels if bot_chord_enabled else 0
@@ -308,6 +325,7 @@ def calculate_material_quantities(inputs: dict, outputs: dict) -> dict:
             quantities["bracing_bot_vol_total"] = f"{bot_chord_vol_total:.2f}" if bot_chord_enabled else "0.00"
             quantities["bracing_bot_wt_single"] = f"{bot_chord_wt_single:.4f}"
             quantities["bracing_bot_wt_total"] = f"{bot_chord_wt_total:.2f}" if bot_chord_enabled else "0.00"
+            quantities["bracing_bot_wt_total_num"] = bot_chord_wt_total if bot_chord_enabled else 0.0
 
             # 5c. Diagonal
             diags_qty = (n_girders - 1) * n_panels * 2
@@ -321,6 +339,7 @@ def calculate_material_quantities(inputs: dict, outputs: dict) -> dict:
             quantities["bracing_diag_vol_total"] = f"{diag_vol_total:.2f}"
             quantities["bracing_diag_wt_single"] = f"{diag_wt_single:.4f}"
             quantities["bracing_diag_wt_total"] = f"{diag_wt_total:.2f}"
+            quantities["bracing_diag_wt_total_num"] = diag_wt_total
         else:
             # Keep all bracing volumes, quantities, and weights as default placeholder "N.A."
             for prefix in ("bracing_top", "bracing_bot", "bracing_diag"):
