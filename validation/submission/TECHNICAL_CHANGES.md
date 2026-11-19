@@ -2,7 +2,10 @@
 
 **Date:** 2026-11-20
 
-**Repository:** <https://github.com/sparsh240/OsdagBridge>  
+**Repository:** <https://github.com/sparsh240/OsdagBridge>
+
+**Collaborators invited:** `osdag-admin` and `Nidhikhare12` (write access; invitations pending acceptance).
+
 Python report scripts are under `src/osdagbridge/core/reports/`.
 
 ## Deliverables
