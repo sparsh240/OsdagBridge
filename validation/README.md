@@ -1,28 +1,30 @@
-# Validation artifacts
+# Validation and submission artifacts
 
-This folder keeps the real-PDF validation evidence for the report enhancements.
+Repository: <https://github.com/sparsh240/OsdagBridge>
 
-## Files
+The report scripts live under `src/osdagbridge/core/reports/`. This folder keeps
+the delivered PDF evidence for the report enhancements.
 
-- `Report_Before.pdf` / `Report_Before.tex` — baseline regenerated from the original
-  commit `d74f56d` using `inputs.osi`.
-- `Report_after.pdf` / `Report_after.tex` — legacy v4 after-report, retained for
-  visual comparison. The final artifact is the v5 file below.
-- `inputs.osi` — design inputs used for the final report.
-- `submission/Report_After.pdf` — final v5 report, 77 pages.
-- `submission/Report_After.tex` — matching LaTeX source, 50 long tables.
-- `submission/inputs.osi` — copy of the final `inputs.osi`.
+## Deliverable files
 
-The final headless generation reuses the GUI-rendered figures from the previous
-submission so that figure placement stays unchanged. Page count rose from 71 to
-77 because `multirow` groups are kept together rather than split across pages.
+- `submission/Report_Before.pdf` — original output, regenerated from baseline
+  commit `d74f56d` using the same inputs.
+- `submission/Report_After.pdf` — final enhanced output (77 pages).
+- `submission/TECHNICAL_CHANGES.md` — brief technical report covering code and
+  LaTeX changes, altered report-generator files, the centralized styling module,
+  design rationale, visual enhancements and verification.
+- `submission/inputs.osi` — design inputs used for the final report.
+
+The legacy v4 report, duplicate baseline copies and generated LaTeX source files
+were removed so the submission contains only the requested reports and their
+supporting files.
 
 ## Key verified values
 
 - Braking: `217.39 kN` for 8 m carriageway → 2 design lanes.
 - Overall UR: `1.93` with governing fatigue stress `178.14 MPa`. The committed v4
-  code produces the same values from this `inputs.osi`; the earlier `1.92` artifact
-  came from a different input/UI state, not from a design-code change.
+  code produces the same values from this `inputs.osi`; the earlier `1.92`
+  artifact came from a different input/UI state, not from a design-code change.
 - Table 2.4: `12.65`; Table 2.7: `1390`, `8`, `420`, `18` in the mm-labelled columns.
 - Table 3.6 seismic forces: `687.82 kN` longitudinal and transverse.
 - Table 5.11 fatigue note extracts as `plate thickness > 25 mm`.
@@ -38,4 +40,5 @@ submission so that figure placement stays unchanged. Page count rose from 71 to
   intersections; `* Software default value` is clear of body text.
 - Centrifugal load: `N/A` by design (no horizontal-curvature input).
 
-See `docs/TECHNICAL_CHANGES.md` for the complete change log.
+See `docs/TECHNICAL_CHANGES.md` for the detailed change log and
+`submission/TECHNICAL_CHANGES.md` for the brief deliverable report.

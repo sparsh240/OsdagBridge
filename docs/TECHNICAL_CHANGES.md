@@ -4,7 +4,7 @@
 
 **Status:** Phase 8 validation complete
 
-**Original baseline:** `validation/Report_Before.pdf` (commit `d74f56d`)
+**Original baseline:** `validation/submission/Report_Before.pdf` (commit `d74f56d`)
 
 **Final artifact:** `validation/submission/Report_After.pdf` (v5)
 
@@ -86,24 +86,27 @@ encoding of `>`.
 | `src/osdagbridge/core/boq/boq_generator.py` | Numeric BOQ fields and crash-barrier area normalization. |
 | `src/osdagbridge/core/utils/codes/irc6_2017.py` | Fixed `cl_211_2_braking_force()`, which previously raised `UnboundLocalError`. |
 | `docs/ENVIRONMENT.md` | Verified versions, LaTeX packages and PySide6 caveat. |
-| `docs/TECHNICAL_CHANGES.md` | This document. |
-| `validation/README.md` | Validation artifact index and verified values. |
+| `docs/TECHNICAL_CHANGES.md` | This detailed change log. |
+| `validation/README.md` | Submission index and verified values. |
+| `validation/submission/TECHNICAL_CHANGES.md` | Brief deliverable note with repository link, rationale and verification summary. |
 
 Generated clutter removed during the final cleanup pass: Python `__pycache__`
 trees and `*.pyc` files, the editable-install `src/osdagbridge.egg-info/`
 metadata, and the two runtime log directories (`ResourceFiles/` and
-`src/ResourceFiles/`), which contained only duplicate Osdag log files. Tracked
-validation artifacts and the runtime `weather.sqlite` database were retained.
+`src/ResourceFiles/`), which contained only duplicate Osdag log files. The
+legacy v4 report, duplicate baseline copies and LaTeX source files were also
+removed from `validation/`, leaving only the requested PDFs and supporting
+files. The runtime `weather.sqlite` database was retained.
 
 ## 5. Verification
 
 ### 5.1 Before/after artifacts
 
-- `validation/Report_Before.pdf` — baseline report regenerated headlessly from
-  original commit `d74f56dd7f22925fb8148cabf5740ed8d1e39ff3` using the same `inputs.osi`.
+- `validation/submission/Report_Before.pdf` — baseline report regenerated
+  headlessly from commit `d74f56dd7f22925fb8148cabf5740ed8d1e39ff3`.
 - `validation/submission/Report_After.pdf` — final v5 report (77 pages).
-- `validation/submission/Report_After.tex` — matching LaTeX source.
 - `validation/submission/inputs.osi` — matching input file.
+- `validation/submission/TECHNICAL_CHANGES.md` — brief submission note.
 
 The final headless generation reuses the GUI-rendered figures from the previous
 submission so that figure placement stays unchanged. The page count rose from 71
