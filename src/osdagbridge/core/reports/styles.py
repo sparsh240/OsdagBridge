@@ -46,7 +46,7 @@ HEADER_FOOTER = {
     "left_text": "Osdag $|$ FOSSEE $|$ Indian Institute of Technology Bombay",
     "head_vspace": "2pt",
     "foot_vspace_no_note": "0pt",   # was -8pt; caused rows to bleed into footer
-    "foot_vspace_note": "-8pt",     # was -20pt
+    "foot_vspace_note": "2pt",      # keep the software-default note below the text block
     "foot_final_vspace": "6pt",
 }
 
@@ -91,6 +91,36 @@ CHART = {
 # ends with \\ or \\[6pt] (see report_utils and chapter modules).
 _HEADER_RE = re.compile(r"\\textbf\{")
 _ROW_END_RE = re.compile(r"\\\\(?:\[[^\]]*\])?\s*$")
+_MULTIROW_RE = re.compile(r"\\multirow\{(\d+)\}")
+
+
+def protect_multirow_breaks(lines):
+    r"""Keep each ``\multirow`` block on one page in a longtable.
+
+    A plain ``\\`` lets longtable split between the rows of a multirow
+    group; the row label is then stranded at the bottom of a page and can
+    collide with the footer. ``\\*`` forbids that break. The replacement is
+    anchored to the actual row terminator so ``\\`` inside ``\\makecell`` is
+    left untouched.
+    """
+    remaining = 0
+    for i, line in enumerate(lines):
+        newline = "\n" if line.endswith("\n") else ""
+        body = line[:-1] if newline else line
+
+        if remaining == 0:
+            match = _MULTIROW_RE.search(body)
+            if match:
+                remaining = max(1, int(match.group(1)))
+
+        if remaining > 0 and _ROW_END_RE.search(body):
+            def _star(row_match):
+                return "\\\\*" + (row_match.group(1) or "") + (row_match.group(2) or "")
+
+            body = re.sub(r"\\\\(\[[^\]]*\])?(\s*)$", _star, body)
+            lines[i] = body + newline
+            remaining -= 1
+    return lines
 
 
 def inject_longtable_headers(tex: str) -> str:
@@ -121,7 +151,7 @@ def inject_longtable_headers(tex: str) -> str:
             break
 
         block = tex[match.start():end]
-        lines = block.splitlines(keepends=True)
+        lines = protect_multirow_breaks(block.splitlines(keepends=True))
 
         # longtable requires \\ after \caption; several chapter templates omit
         # it, which produces "Misplaced \noalign" errors. Normalize centrally.

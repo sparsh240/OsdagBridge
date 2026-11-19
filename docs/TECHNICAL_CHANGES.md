@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-20
 
-**Status:** Phase 7 validation complete
+**Status:** Phase 8 validation complete
 
 **Original baseline:** `validation/Report_Before.pdf` (commit `d74f56d`)
 
@@ -44,6 +44,18 @@ deliverable.
 | Table 5.19 punching label | Reported as `URd,c` in an older artifact | Current source and PDF use `$v_{Rd,c}$`; verified as `vRd,c` in extracted text |
 | Project Overview | Reported as duplicated | Not present as a duplicate in current source or PDF; no block was removed |
 
+### 3.1 Footer overlap fix (post-P1/P2/P3)
+
+| Area | Before | After |
+|---|---|---|
+| Software-default note | `foot_vspace_note = "-8pt"` placed `* Software default value` over the body note near the bottom of page 14 | `foot_vspace_note = "2pt"`; the rendered note now sits clear of the body text |
+| Multirow table breaks | A plain row ending let longtable split a `multirow` group; label `G6` was stranded in the footer on page 25 | `protect_multirow_breaks()` converts row endings in every longtable to `\*`, keeping each group together |
+
+The multirow fix is central and applies to all current and future longtables, so
+no chapter template needs a one-off edit. Keeping groups intact changes pagination
+(from 71 to 77 pages) but removes the footer collision. A rendered-PDF geometry
+check now asserts zero body/footer word-box intersections.
+
 The crash-barrier fix normalizes `typical_section.crash_barrier.area` once in
 `boq_generator.calculate_material_quantities()`. The UI stores this key in m² while
 the default library stores mm²; the second division by `1e6` was collapsing the
@@ -61,7 +73,7 @@ encoding of `>`.
 
 | File | Purpose |
 |---|---|
-| `src/osdagbridge/core/reports/styles.py` | Centralized LaTeX styles; continuation-head injection with `(table continued)` note. |
+| `src/osdagbridge/core/reports/styles.py` | Centralized LaTeX styles; continuation-head injection, footer note spacing and generic `multirow` break protection. |
 | `src/osdagbridge/core/reports/charts.py` | Matplotlib-based utilization-ratio and material charts. |
 | `src/osdagbridge/core/reports/chap2.py` | Display fixes for Table 2.4 / 2.7 and explicit continuation head for the restraint table. |
 | `src/osdagbridge/core/reports/chap3.py` | Braking population, split live-load tables, seismic force rows, note wording and hardened combination formatter. |
@@ -77,30 +89,40 @@ encoding of `>`.
 | `docs/TECHNICAL_CHANGES.md` | This document. |
 | `validation/README.md` | Validation artifact index and verified values. |
 
+Generated clutter removed during the final cleanup pass: Python `__pycache__`
+trees and `*.pyc` files, the editable-install `src/osdagbridge.egg-info/`
+metadata, and the two runtime log directories (`ResourceFiles/` and
+`src/ResourceFiles/`), which contained only duplicate Osdag log files. Tracked
+validation artifacts and the runtime `weather.sqlite` database were retained.
+
 ## 5. Verification
 
 ### 5.1 Before/after artifacts
 
 - `validation/Report_Before.pdf` — baseline report regenerated headlessly from
   original commit `d74f56dd7f22925fb8148cabf5740ed8d1e39ff3` using the same `inputs.osi`.
-- `validation/submission/Report_After.pdf` — final v5 report (71 pages).
+- `validation/submission/Report_After.pdf` — final v5 report (77 pages).
 - `validation/submission/Report_After.tex` — matching LaTeX source.
 - `validation/submission/inputs.osi` — matching input file.
 
 The final headless generation reuses the GUI-rendered figures from the previous
-submission so that figure placement and page count stay unchanged.
+submission so that figure placement stays unchanged. The page count rose from 71
+to 77 because `multirow` groups are now kept together instead of being split
+across pages.
 
 ### 5.2 Report checks
 
 | Measure | Result |
 |---|---|
-| PDF pages | `71` |
+| PDF pages | `77` |
 | `longtable` count | `50` |
 | `endfirsthead` / `endhead` | `50 / 50` |
 | Missing headers | `0` |
 | Continuation notes | `49` (one complex table keeps its bespoke two-row head) |
 | Repeated caption heads | `0` |
-| Cover / TOC / last footer | `Page 1 of 71` / `Page 2 of 71` / `Page 71 of 71` |
+| Protected multirow row endings | `384` starred endings |
+| Footer/body word-box intersections | `0` (full `pdftotext -bbox` scan) |
+| Cover / TOC / last footer | `Page 1 of 77` / `Page 2 of 77` / `Page 77 of 77` |
 | TOC first entry | `Executive Summary 3` |
 
 Verified rendered values:
@@ -157,7 +179,7 @@ code changes. No design calculation was altered.
 1. Chapter 5 End Diaphragm tables still reuse cross-bracing data
    (`cb_capacity_content`). This is pre-existing; the UR chart deliberately follows
    the printed Table 5.29 value. A proper fix needs real ED design results.
-2. Approximately 141 pre-existing `Overfull \hbox` LaTeX warnings remain in the
+2. Approximately 142 pre-existing `Overfull \hbox` LaTeX warnings remain in the
    headless smoke recompile. They are cosmetic.
 3. The environment has PySide6 `6.12.0` installed while `requirements.txt` caps it at
    `6.9.3`. This does not affect the report path and is documented in

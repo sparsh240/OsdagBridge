@@ -9,12 +9,13 @@ This folder keeps the real-PDF validation evidence for the report enhancements.
 - `Report_after.pdf` / `Report_after.tex` — legacy v4 after-report, retained for
   visual comparison. The final artifact is the v5 file below.
 - `inputs.osi` — design inputs used for the final report.
-- `submission/Report_After.pdf` — final v5 report, 71 pages.
+- `submission/Report_After.pdf` — final v5 report, 77 pages.
 - `submission/Report_After.tex` — matching LaTeX source, 50 long tables.
 - `submission/inputs.osi` — copy of the final `inputs.osi`.
 
 The final headless generation reuses the GUI-rendered figures from the previous
-submission so that figure placement and page count remain unchanged.
+submission so that figure placement stays unchanged. Page count rose from 71 to
+77 because `multirow` groups are kept together rather than split across pages.
 
 ## Key verified values
 
@@ -31,8 +32,10 @@ submission so that figure placement and page count remain unchanged.
   volume `15.11`, weights `18.89` / `37.79`.
 - Repeated longtable headers: `50 / 50`; missing headers: `0`; repeated caption
   heads: `0`; continuation notes: `49`.
-- Footer alignment: cover `Page 1 of 71`, TOC `Page 2 of 71`, last `Page 71 of 71`;
+- Footer alignment: cover `Page 1 of 77`, TOC `Page 2 of 77`, last `Page 77 of 77`;
   TOC starts with `Executive Summary 3`.
+- Footer separation: full `pdftotext -bbox` scan reports `0` body/footer word-box
+  intersections; `* Software default value` is clear of body text.
 - Centrifugal load: `N/A` by design (no horizontal-curvature input).
 
 See `docs/TECHNICAL_CHANGES.md` for the complete change log.
